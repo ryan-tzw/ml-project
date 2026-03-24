@@ -1,4 +1,6 @@
 data/*.csv
+.github/
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
