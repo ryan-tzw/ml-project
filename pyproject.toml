@@ -3,8 +3,9 @@ name = "ml-project"
 version = "0.1.0"
 description = "Group project for 50.007 Machine Learning"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
+    "ipykernel>=7.2.0",
     "matplotlib>=3.10.8",
     "numpy>=2.4.3",
     "pandas>=3.0.1",
