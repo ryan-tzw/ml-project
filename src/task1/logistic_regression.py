@@ -53,3 +53,42 @@ class LogisticRegression:
         linear_output = X @ self.weights + self.bias
         y_hat = self.sigmoid(linear_output)
         return (y_hat >= 0.5).astype(int)
+
+
+class MultiClassLogisticRegression:
+    def __init__(self):
+        self.models = []
+        self.n_classes = None
+
+    def train(self, X, y, bs=32, epochs=100, lr=0.01):
+        """
+        Train one-vs-rest classifiers for multi-class classification
+        - X: (n_samples, n_features)
+        y: (n_samples,) integer labels from 0 to n_classes-1
+        """
+        self.n_classes = len(np.unique(y))  # Counts unique classes in y
+        self.models = []  # List to store binary classifiers (one per class)
+
+        # Each iteration trains a binary classifer for one class
+        for c in range(self.n_classes):
+            print(f"Training classifier for class {c}...")
+            # Convert to binary labels for this class
+            y_binary = (y == c).astype(int)
+            # Reuses the LogisticRegression class for binary classification
+            model = LogisticRegression()
+            model.train(X, y_binary, bs=bs, epochs=epochs, lr=lr)
+            self.models.append(model)
+        print("All classifiers trained!")
+
+    def predict(self, X):
+        """
+        Predict class labels for X
+        """
+        # Store predicted probabilities for each classifier
+        probs = np.zeros((X.shape[0], self.n_classes))
+        for c, model in enumerate(self.models):
+            # Compute sigmoid of linear input
+            linear_output = X @ model.weights + model.bias
+            probs[:, c] = model.sigmoid(linear_output)
+        # Select class with highest probability
+        return np.argmax(probs, axis=1)
