@@ -10,6 +10,7 @@ import seaborn as sns
 import nltk
 from pathlib import Path
 from typing import Tuple, Dict, Optional, List
+import joblib
 
 # Download required NLTK data
 nltk.download('stopwords', quiet=True)
@@ -413,7 +414,7 @@ class DataPreprocessor:
         Args:
             vectorizer_name: Name of the vectorizer
             
-        Returns:
+        Returns: 
             List of feature names
         """
         if vectorizer_name not in self.tfidf_vectorizers:
@@ -435,4 +436,142 @@ class DataPreprocessor:
         
         return self.fs_data[size]['vectorizer'].get_feature_names_out()
     
+    def save_processed_data(self, output_dir: str = 'processed_data'):
+        """
+        Save processed data and vectorizers for later use.
+        
+        Args:
+            output_dir: Directory to save processed data
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
+        
+        # Save dataframes
+        if self.train_df is not None:
+            self.train_df.to_csv(output_path / 'train_processed.csv', index=False)
+            self.test_df.to_csv(output_path / 'test_processed.csv', index=False)
+        
+        # Save train/validation splits
+        if self.X_train_raw is not None:
+            pd.DataFrame({
+                'cleaned_abstract': self.X_train_raw,
+                'label_id': self.y_train
+            }).to_csv(output_path / 'train_split.csv', index=False)
+            
+            pd.DataFrame({
+                'cleaned_abstract': self.X_val_raw,
+                'label_id': self.y_val
+            }).to_csv(output_path / 'val_split.csv', index=False)
+            print(f"  ✓ Saved train_split.csv and val_split.csv")
 
+        # Save vectorizers
+        for name, vectorizer in self.tfidf_vectorizers.items():
+            joblib.dump(vectorizer, output_path / f'tfidf_{name}.pkl')
+        print(f"  ✓ Saved {len(self.tfidf_vectorizers)} TF-IDF vectorizer(s)")
+        
+        # Save feature selection vectorizers
+        for size, data in self.fs_data.items():
+            joblib.dump(data['vectorizer'], output_path / f'tfidf_fs_{size}.pkl')
+            joblib.dump(data['train'], output_path / f'X_train_fs_{size}.pkl')
+            joblib.dump(data['val'], output_path / f'X_val_fs_{size}.pkl')
+            joblib.dump(data['test'], output_path / f'X_test_fs_{size}.pkl')
+        print(f"  ✓ Saved {len(self.fs_data)} feature selection sets")
+        
+        print(f"\n✓ All data saved to {output_path}/")
+    
+    def load_processed_data(self, input_dir: str = 'processed_data'):
+        """
+        Load previously saved processed data and vectorizers.
+        
+        Args:
+            input_dir: Directory containing saved data
+        """
+        input_path = Path(input_dir)
+        
+        if not input_path.exists():
+            raise FileNotFoundError(f"Directory {input_path} not found.")
+        
+        # Load dataframes
+        train_path = input_path / 'train_processed.csv'
+        test_path = input_path / 'test_processed.csv'
+        
+        if train_path.exists():
+            self.train_df = pd.read_csv(train_path)
+            self.test_df = pd.read_csv(test_path)
+            print(f"Loaded train data: {self.train_df.shape}")
+            print(f"Loaded test data: {self.test_df.shape}")
+        
+         # Load train/validation splits
+        train_split_path = input_path / 'train_split.csv'
+        val_split_path = input_path / 'val_split.csv'
+        
+        if train_split_path.exists():
+            train_split = pd.read_csv(train_split_path)
+            val_split = pd.read_csv(val_split_path)
+            self.X_train_raw = train_split['cleaned_abstract']
+            self.y_train = train_split['label_id']
+            self.X_val_raw = val_split['cleaned_abstract']
+            self.y_val = val_split['label_id']
+            print(f"  ✓ Loaded train/validation splits")
+        
+        # Clear existing data
+        self.tfidf_vectorizers = {}
+        self.fs_data = {}
+        
+        # Load vectorizers
+        for p in input_path.glob('tfidf_*.pkl'):
+            if 'tfidf_fs' not in p.name:
+                name = p.stem.replace('tfidf_', '')
+                try:
+                    self.tfidf_vectorizers[name] = joblib.load(p)
+                    print(f"Loaded vectorizer: {name}")
+                except Exception as e:
+                    print(f"Error loading {p.name}: {e}")
+
+        # Load feature selection vectorizers
+        for p in input_path.glob('tfidf_fs_*.pkl'):
+            if 'X_train_fs' not in p.name and 'X_val_fs' not in p.name and 'X_test_fs' not in p.name:
+                size = int(p.stem.replace('tfidf_fs_', ''))
+                try:
+                    size = int(p.stem.replace('tfidf_fs_', ''))
+                    vectorizer = joblib.load(p)
+                    self.fs_data[size] = {'vectorizer': vectorizer}
+                    self.fs_data[size]['train'] = joblib.load(input_path / f'X_train_fs_{size}.pkl')
+                    self.fs_data[size]['val'] = joblib.load(input_path / f'X_val_fs_{size}.pkl')
+                    self.fs_data[size]['test'] = joblib.load(input_path / f'X_test_fs_{size}.pkl')
+                except Exception as e:
+                    print(f"Error loading feature selection data for size {size}: {e}")
+
+
+# Initialize preprocessor
+preprocessor = DataPreprocessor(data_dir="data", random_state=42)
+# Load data
+train_df, test_df, taxonomy_df = preprocessor.load_data()
+# Explore data
+data_stats = preprocessor.explore_data()
+# Create text preprocessor
+preprocessor.create_text_preprocessor(
+    use_stemming=False,
+    use_lemmatization=True,
+    remove_stopwords=True
+)
+preprocessor.preprocess_texts()
+# Split data
+X_train_raw, X_val_raw, y_train, y_val = preprocessor.split_data(test_size=0.2, stratify=True)
+preprocessor.X_train_raw = X_train_raw
+preprocessor.X_val_raw = X_val_raw
+preprocessor.y_train = y_train
+preprocessor.y_val = y_val
+# Fit TF-IDF
+tfidf_results = preprocessor.fit_transform_tfidf(X_train_raw=preprocessor.X_train_raw,
+                                                X_val_raw=preprocessor.X_val_raw, 
+                                                X_test_raw=preprocessor.test_df['cleaned_abstract'], 
+                                                max_features=5000, 
+                                                vectorizer_name='default')
+# Run feature selection experiment
+fs_results = preprocessor.feature_selection_experiment(
+    feature_sizes=[2000, 1000, 500, 100], 
+    ngram_range=(1, 2)
+)
+# Save processed data
+preprocessor.save_processed_data(output_dir='processed_data')
