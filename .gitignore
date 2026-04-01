@@ -1,4 +1,5 @@
 data/*.csv
+nltk_data/
 .github/
 .vscode/
 
