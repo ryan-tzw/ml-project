@@ -58,7 +58,7 @@ class LogisticRegression:
 class MultiClassLogisticRegression:
     def __init__(self):
         self.models = []
-        self.n_classes = None
+        self.n_classes: int | None = None
 
     def train(self, X, y, bs=32, epochs=100, lr=0.01):
         """
@@ -84,6 +84,9 @@ class MultiClassLogisticRegression:
         """
         Predict class labels for X
         """
+        if self.n_classes is None:
+            raise ValueError("Model has not been trained. Call train(...) first.")
+
         # Store predicted probabilities for each classifier
         probs = np.zeros((X.shape[0], self.n_classes))
         for c, model in enumerate(self.models):
