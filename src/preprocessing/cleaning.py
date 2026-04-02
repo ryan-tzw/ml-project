@@ -120,6 +120,8 @@ class TextCleaner:
             return ""
 
         tokens = cleaned.split()
+        tokens = [token.strip("-_") for token in tokens]
+        tokens = [token for token in tokens if token]
 
         if self.cfg.remove_stopwords:
             tokens = [token for token in tokens if token not in self._stop_words]
