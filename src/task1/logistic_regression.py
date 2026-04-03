@@ -1,6 +1,7 @@
 """Logistic Regression implementation from scratch."""
 
 import numpy as np
+from tqdm.auto import tqdm
 
 
 class LogisticRegression:
@@ -70,15 +71,13 @@ class MultiClassLogisticRegression:
         self.models = []  # List to store binary classifiers (one per class)
 
         # Each iteration trains a binary classifer for one class
-        for c in range(self.n_classes):
-            print(f"Training classifier for class {c}...")
+        for c in tqdm(range(self.n_classes), desc="Training OvR classifiers"):
             # Convert to binary labels for this class
             y_binary = (y == c).astype(int)
             # Reuses the LogisticRegression class for binary classification
             model = LogisticRegression()
             model.train(X, y_binary, bs=bs, epochs=epochs, lr=lr)
             self.models.append(model)
-        print("All classifiers trained!")
 
     def predict(self, X):
         """

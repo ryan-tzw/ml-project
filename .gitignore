@@ -2,6 +2,7 @@ data/*.csv
 nltk_data/
 .github/
 .vscode/
+scripts/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
