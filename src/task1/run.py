@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from src.preprocessing.cleaning import CleaningConfig, TextCleaner
+from src.preprocessing.data_io import load_train_test_data
 from src.preprocessing.tfidf import TFIDF_DEFAULTS
 from src.task1.logistic_regression import MultiClassLogisticRegression
 
@@ -16,21 +17,11 @@ LEARNING_RATE = 0.1
 OUTPUT_PATH = PROJECT_ROOT / "submissions" / "LogReg_Prediction.csv"
 
 
-def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
-    train_path = PROJECT_ROOT / "data" / "train.csv"
-    test_path = PROJECT_ROOT / "data" / "test.csv"
-
-    train_df = pd.read_csv(train_path, sep="\t")
-    test_df = pd.read_csv(test_path, sep="\t")
-
-    return train_df, test_df
-
-
 def main() -> None:
     from tqdm.auto import tqdm
 
     print("Loading data...")
-    train_df, test_df = load_data()
+    train_df, test_df = load_train_test_data(PROJECT_ROOT)
     print(f"Train shape: {train_df.shape}")
     print(f"Test shape: {test_df.shape}")
 
