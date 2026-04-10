@@ -18,13 +18,13 @@ class LogisticRegression:
         y_hat = np.clip(y_hat, 1e-15, 1 - 1e-15)  # Avoid log(0)
         return -(1 / n) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
 
-    def gradients(self, X, y, y_hat):
+    def gradients(self, X, y, y_hat, reg_strength):
         n = len(y)
-        dw = (1 / n) * X.T @ (y_hat - y)
+        dw = (1 / n) * X.T @ (y_hat - y) + reg_strength * self.weights
         db = (1 / n) * np.sum(y_hat - y)
         return dw, db
 
-    def train(self, X, y, bs, epochs, lr):
+    def train(self, X, y, bs, epochs, lr, reg_strength=1e-4):
         """
         Params:
         - X: Training data, shape (n_samples, n_features)
@@ -32,6 +32,7 @@ class LogisticRegression:
         - bs: Batch size
         - epochs: Number of training epochs
         - lr: Learning rate
+        - reg_strength: L2 regularization strength (weights only)
         """
 
         n_samples, n_features = X.shape
@@ -50,7 +51,7 @@ class LogisticRegression:
                 y_batch = y_epoch[i : i + bs]
 
                 y_hat = self.sigmoid(X_batch @ self.weights + self.bias)
-                dw, db = self.gradients(X_batch, y_batch, y_hat)
+                dw, db = self.gradients(X_batch, y_batch, y_hat, reg_strength)
 
                 self.weights -= lr * dw
                 self.bias -= lr * db
@@ -66,7 +67,7 @@ class MultiClassLogisticRegression:
         self.models = []
         self.n_classes: int | None = None
 
-    def train(self, X, y, bs=32, epochs=100, lr=0.01):
+    def train(self, X, y, bs=32, epochs=100, lr=0.01, reg_strength=1e-4):
         """
         Train one-vs-rest classifiers for multi-class classification
         - X: (n_samples, n_features)
@@ -81,7 +82,14 @@ class MultiClassLogisticRegression:
             y_binary = (y == c).astype(int)
             # Reuses the LogisticRegression class for binary classification
             model = LogisticRegression()
-            model.train(X, y_binary, bs=bs, epochs=epochs, lr=lr)
+            model.train(
+                X,
+                y_binary,
+                bs=bs,
+                epochs=epochs,
+                lr=lr,
+                reg_strength=reg_strength,
+            )
             self.models.append(model)
 
     def predict(self, X):
