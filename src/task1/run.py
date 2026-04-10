@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from src.preprocessing.cleaning import CleaningConfig, TextCleaner
-from src.preprocessing.data_io import load_train_test_data
+from src.preprocessing.data_io import load_train_test_cleaned_data
 from src.preprocessing.tfidf import TFIDF_DEFAULTS
 from src.task1.logistic_regression import MultiClassLogisticRegression
 
@@ -18,20 +17,13 @@ OUTPUT_PATH = PROJECT_ROOT / "submissions" / "LogReg_Prediction.csv"
 
 
 def main() -> None:
-    from tqdm.auto import tqdm
-
     print("Loading data...")
-    train_df, test_df = load_train_test_data(PROJECT_ROOT)
+    train_df, test_df = load_train_test_cleaned_data(PROJECT_ROOT)
     print(f"Train shape: {train_df.shape}")
     print(f"Test shape: {test_df.shape}")
 
-    cleaner = TextCleaner(CleaningConfig())
-    X_train_cleaned = [
-        cleaner.preprocess(t) for t in tqdm(train_df["abstract"], desc="Cleaning train")
-    ]
-    X_test_cleaned = [
-        cleaner.preprocess(t) for t in tqdm(test_df["abstract"], desc="Cleaning test")
-    ]
+    X_train_cleaned = train_df["cleaned_abstract"].tolist()
+    X_test_cleaned = test_df["cleaned_abstract"].tolist()
 
     print("Vectorizing text with TF-IDF...")
     vectorizer = TfidfVectorizer(**TFIDF_DEFAULTS)
