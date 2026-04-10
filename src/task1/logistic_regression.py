@@ -18,13 +18,26 @@ class LogisticRegression:
         y_hat = np.clip(y_hat, 1e-15, 1 - 1e-15)  # Avoid log(0)
         return -(1 / n) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
 
-    def gradients(self, X, y, y_hat, reg_strength):
-        n = len(y)
-        dw = (1 / n) * X.T @ (y_hat - y) + reg_strength * self.weights
-        db = (1 / n) * np.sum(y_hat - y)
+    def gradients(self, X, y, y_hat, reg_strength, sample_weight):
+        """
+        sample_weight applies per-row class weights (pos_w/neg_w) to errors.
+        This helps prevent the majority class from dominating updates.
+        """
+        weight_sum = float(np.sum(sample_weight))
+        error = (y_hat - y) * sample_weight
+        dw = (1 / weight_sum) * X.T @ error + reg_strength * self.weights
+        db = (1 / weight_sum) * np.sum(error)
         return dw, db
 
-    def train(self, X, y, bs, epochs, lr, reg_strength=1e-4):
+    def train(
+        self,
+        X,
+        y,
+        bs,
+        epochs,
+        lr,
+        reg_strength=1e-4,
+    ):
         """
         Params:
         - X: Training data, shape (n_samples, n_features)
@@ -38,20 +51,38 @@ class LogisticRegression:
         n_samples, n_features = X.shape
         self.weights = np.zeros(n_features)
         self.bias = 0
+        y_arr = np.asarray(y)
 
-        for epoch in range(epochs):
+        # Compute class weights for balanced updates
+        pos_count = int(np.sum(y_arr == 1))
+        neg_count = n_samples - pos_count
+        if pos_count == 0 or neg_count == 0:
+            raise ValueError(
+                "Cannot compute balanced class weights when one class is missing."
+            )
+        pos_w = n_samples / (2.0 * pos_count)
+        neg_w = n_samples / (2.0 * neg_count)
+
+        for _ in range(epochs):
             # Shuffle each epoch so batches are not biased.
             order = np.random.permutation(n_samples)
             X_epoch = X[order]
-            y_epoch = y[order]
+            y_epoch = y_arr[order]
 
             # Gradient descent
             for i in range(0, n_samples, bs):
                 X_batch = X_epoch[i : i + bs]
                 y_batch = y_epoch[i : i + bs]
+                sample_weight = np.where(y_batch == 1, pos_w, neg_w).astype(np.float64)
 
                 y_hat = self.sigmoid(X_batch @ self.weights + self.bias)
-                dw, db = self.gradients(X_batch, y_batch, y_hat, reg_strength)
+                dw, db = self.gradients(
+                    X_batch,
+                    y_batch,
+                    y_hat,
+                    reg_strength,
+                    sample_weight=sample_weight,
+                )
 
                 self.weights -= lr * dw
                 self.bias -= lr * db
@@ -67,7 +98,15 @@ class MultiClassLogisticRegression:
         self.models = []
         self.n_classes: int | None = None
 
-    def train(self, X, y, bs=32, epochs=100, lr=0.01, reg_strength=1e-4):
+    def train(
+        self,
+        X,
+        y,
+        bs=32,
+        epochs=100,
+        lr=0.01,
+        reg_strength=1e-4,
+    ):
         """
         Train one-vs-rest classifiers for multi-class classification
         - X: (n_samples, n_features)
