@@ -39,10 +39,15 @@ class LogisticRegression:
         self.bias = 0
 
         for epoch in range(epochs):
+            # Shuffle each epoch so batches are not biased.
+            order = np.random.permutation(n_samples)
+            X_epoch = X[order]
+            y_epoch = y[order]
+
             # Gradient descent
             for i in range(0, n_samples, bs):
-                X_batch = X[i : i + bs]
-                y_batch = y[i : i + bs]
+                X_batch = X_epoch[i : i + bs]
+                y_batch = y_epoch[i : i + bs]
 
                 y_hat = self.sigmoid(X_batch @ self.weights + self.bias)
                 dw, db = self.gradients(X_batch, y_batch, y_hat)
