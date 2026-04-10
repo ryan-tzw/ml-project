@@ -10,9 +10,10 @@ from src.task1.logistic_regression import MultiClassLogisticRegression
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-EPOCHS = 2
+EPOCHS = 10
 BATCH_SIZE = 512
-LEARNING_RATE = 0.1
+LEARNING_RATE = 2.0
+REG_STRENGTH = 1e-4
 OUTPUT_PATH = PROJECT_ROOT / "submissions" / "LogReg_Prediction.csv"
 
 
@@ -34,7 +35,14 @@ def main() -> None:
     print(f"Test TF-IDF shape: {X_test.shape}")
 
     model = MultiClassLogisticRegression()
-    model.train(X_train, y_train, bs=BATCH_SIZE, epochs=EPOCHS, lr=LEARNING_RATE)
+    model.train(
+        X_train,
+        y_train,
+        bs=BATCH_SIZE,
+        epochs=EPOCHS,
+        lr=LEARNING_RATE,
+        reg_strength=REG_STRENGTH,
+    )
 
     print("Predicting test labels...")
     y_pred = model.predict(X_test).astype(np.int64)
