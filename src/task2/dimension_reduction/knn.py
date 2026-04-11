@@ -73,7 +73,7 @@ def run_cv() -> pd.DataFrame:
 
     print("Loading cleaned train data...")
     train_df, _ = load_train_test_cleaned_data(PROJECT_ROOT)
-    X = train_df["cleaned_abstract"].tolist()
+    X = train_df["cleaned_abstract"].to_numpy(dtype=str)
     y = train_df["label_id"].to_numpy(dtype=np.int64)
     print(f"Train shape: {train_df.shape}")
     print(f"Number of classes: {len(np.unique(y))}")
@@ -99,11 +99,15 @@ def run_cv() -> pd.DataFrame:
 
         macro_f1_scores = cv_result["test_macro_f1"]
         accuracy_scores = cv_result["test_accuracy"]
+        fit_times = cv_result["fit_time"]
+        score_times = cv_result["score_time"]
 
         mean_f1 = float(np.mean(macro_f1_scores))
         std_f1 = float(np.std(macro_f1_scores))
         mean_acc = float(np.mean(accuracy_scores))
         std_acc = float(np.std(accuracy_scores))
+        mean_train_time = float(np.mean(fit_times))
+        mean_fold_time = float(np.mean(fit_times + score_times))
 
         results.append(
             {
@@ -112,6 +116,8 @@ def run_cv() -> pd.DataFrame:
                 "std_macro_f1": std_f1,
                 "mean_accuracy": mean_acc,
                 "std_accuracy": std_acc,
+                "mean_train_time_sec": mean_train_time,
+                "mean_fold_time_sec": mean_fold_time,
             }
         )
 

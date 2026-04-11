@@ -20,13 +20,19 @@ OUTPUT_PATH = (
     PROJECT_ROOT / "outputs" / "task2" / "feature_selection_knn_cv_results.csv"
 )
 
+# Feature-selection sweep settings.
 FEATURE_SIZES = [2000, 1000, 500, 100]
+
+# Cross-validation settings.
 N_SPLITS = 5
 RANDOM_STATE = 42
+
+# KNN classifier settings.
 N_NEIGHBORS = 2
 KNN_WEIGHTS = "distance"
 KNN_METRIC = "cosine"
 KNN_ALGORITHM = "brute"
+KNN_N_JOBS = 4
 
 
 def run_cv() -> pd.DataFrame:
@@ -42,7 +48,7 @@ def run_cv() -> pd.DataFrame:
     skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
     fold_indices = list(skf.split(cleaned_texts, y))
 
-    results: list[dict[str, float | int]] = []
+    results: list[dict[str, str | float | int]] = []
     size_iter = tqdm(FEATURE_SIZES, desc="Feature sizes", unit="size")
     for max_features in size_iter:
         size_iter.set_description(f"Feature sizes (current: {max_features})")
@@ -76,6 +82,7 @@ def run_cv() -> pd.DataFrame:
                 weights=KNN_WEIGHTS,
                 metric=KNN_METRIC,
                 algorithm=KNN_ALGORITHM,
+                n_jobs=KNN_N_JOBS,
             )
             train_start = time.perf_counter()
             clf.fit(X_train, y_train)

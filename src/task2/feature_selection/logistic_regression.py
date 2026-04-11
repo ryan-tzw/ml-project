@@ -43,7 +43,7 @@ def run_cv() -> pd.DataFrame:
     skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
     fold_indices = list(skf.split(cleaned_texts, y))
 
-    results: list[dict[str, float | int]] = []
+    results: list[dict[str, str | float | int]] = []
     size_iter = tqdm(FEATURE_SIZES, desc="Feature sizes", unit="size")
     for max_features in size_iter:
         size_iter.set_description(f"Feature sizes (current: {max_features})")
