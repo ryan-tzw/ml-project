@@ -1,7 +1,5 @@
 """Task 2 feature-size CV experiments using KNN (n_neighbors=2)."""
 
-from __future__ import annotations
-
 import time
 from pathlib import Path
 

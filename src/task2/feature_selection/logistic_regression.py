@@ -1,7 +1,5 @@
 """Task 2 feature-size CV experiments using custom multiclass logistic regression."""
 
-from __future__ import annotations
-
 import time
 from pathlib import Path
 
